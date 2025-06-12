@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Audio Forensic Analysis</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Poppins:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --space-cadet: #2B2D42;
+            --ultra-violet: #6D597A;
+            --china-rose: #B56576;
+            --cinnabar: #E56B6F;
+            --powder-blue: #B8DBD9;
+            --ghost-white: #F8F9FA;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--ghost-white) 0%, #f0f2f5 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .floating-header {
+            text-align: center;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .floating-header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, var(--space-cadet), var(--ultra-violet));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1.5px;
+            margin-bottom: 1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 3rem;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .upload-panel {
+            position: relative;
+            padding-right: 3rem;
+            border-right: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .upload-panel::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60%;
+            width: 3px;
+            background: linear-gradient(180deg, var(--cinnabar), var(--china-rose));
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 1.5rem;
+            border: 2px dashed #d1d5db;
+            border-radius: 16px;
+            background: var(--ghost-white);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input[type="file"]:hover {
+            border-color: var(--cinnabar);
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        select {
+            width: 100%;
+            padding: 1.2rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            font-size: 1rem;
+            appearance: none;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            border-color: var(--ultra-violet);
+            box-shadow: 0 0 0 3px rgba(109, 89, 122, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--ultra-violet), var(--space-cadet));
+            color: white;
+            padding: 1.4rem 2.8rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.2),
+                    transparent);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(43, 45, 66, 0.2);
+        }
+
+        .results-panel {
+            position: relative;
+        }
+
+        .analysis-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease;
+        }
+
+        .analysis-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin: 2rem 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cinnabar), var(--china-rose));
+            width: 75%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .prediction-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.2rem;
+            border-radius: 24px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--powder-blue), #9abfbe);
+            color: var(--space-cadet);
+            gap: 0.6rem;
+        }
+
+        .prediction-tag::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: var(--cinnabar);
+            animation: spin 1.2s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .decorative-shape {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, var(--powder-blue) 0%, transparent 70%);
+            border-radius: 30% 70% 70% 30%/30% 30% 70% 70%;
+            filter: blur(60px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                padding: 2rem;
+            }
+
+            .upload-panel {
+                border-right: none;
+                padding-right: 0;
+                padding-bottom: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="floating-header">
+            <h1>Audio Authenticity AI</h1>
+            <p>Advanced Deepfake Detection with Neural Network Analysis</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="decorative-shape" style="top: -150px; left: -150px;"></div>
+            <div class="decorative-shape" style="bottom: -150px; right: -150px;"></div>
+
+            <div class="upload-panel">
+                <form id="prediction-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Upload Audio File</label>
+                        <input type="file" name="file" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Analysis Model</label>
+                        <select name="model">
+                            <option value="lstm">LSTM Neural Network</option>
+                            <option value="cnn">Convolutional Model</option>
+                            <option value="ensemble">Ensemble Analysis</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">
+                        <span>Analyze Audio</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-panel">
+                <h2 style="color: var(--space-cadet); margin-bottom: 2rem;">Analysis Results</h2>
+                <div id="prediction-result">
+                    <div class="analysis-card">
+                        <div style="display: flex; align-items: center; gap: 1rem; color: var(--ultra-violet);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-upload-cloud">
+                                <polyline points="16 16 12 12 8 16"></polyline>
+                                <line x1="12" y1="12" x2="12" y2="21"></line>
+                                <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+                            </svg>
+                            <p>Upload an audio file to begin forensic analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('#prediction-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('prediction-result');
+
+            resultDiv.innerHTML = `
+                <div class="analysis-card">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2rem; padding: 2rem;">
+                        <div class="loading-spinner"></div>
+                        <p style="color: var(--ultra-violet);">Analyzing audio patterns...</p>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Analysis failed - invalid audio format');
+
+                const result = await response.json();
+
+                let resultHTML = '';
+                if (result.model === 'ensemble') {
+                    resultHTML = `
+                        <div class="analysis-card">
+                            <div class="prediction-tag">
+                                <span>ENSEMBLE VERDICT</span>
+                            </div>
+                            <div style="text-align: center; margin: 2rem 0;">
+                                <p style="color: var(--ultra-violet); font-weight: 500;">Final Determination</p>
+                                <div class="prediction-tag" style="margin: 1rem auto; padding: 1rem 2rem;">
+                                    ${result.soft_class_label}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultHTML = `
+                        <div class="analysis-card">
+                            <div class="prediction-tag">
+                                ${result.model.toUpperCase()} ANALYSIS
+                            </div>
+                            <div style="text-align: center; margin: 2rem 0;">
+                                <p style="color: var(--ultra-violet); font-weight: 500;">Detection Result</p>
+                                <div class="prediction-tag" style="margin: 1rem auto; padding: 1rem 2rem;">
+                                    ${result.prediction}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                resultDiv.innerHTML = resultHTML;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="analysis-card" style="border: 2px solid var(--cinnabar); background: #fff5f5;">
+                        <div style="display: flex; align-items: center; gap: 1rem; color: var(--cinnabar);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12" y2="17"></line>
+                            </svg>
+                            <p>${error.message}</p>
+                        </div>
+                    </div>
+               `;
+            }
+        };
+    </script>
+    <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'93ad96c538a1b0bb',t:'MTc0NjQyMDMzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
+</body>
+
+</html>
